@@ -1,4 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { NotFoundException } from '@nestjs/common';
 
 @Injectable()   //this means that UsersService can be managed by Nest
 export class UsersService {
@@ -40,7 +43,12 @@ export class UsersService {
     findAll(role?: 'INTERN' | 'ENGINEER' | 'ADMIN') {
 
         if (role) {   //if a role was passed
-            return this.users.filter(user => user.role === role);   //refers to the users property that we can filter. This will only return the users that have that role passed in.
+            const rolesArray = this.users.filter(user => user.role === role);   //refers to the users property that we can filter. This will only return the users that have that role passed in.
+
+            if (rolesArray.length === 0) throw new NotFoundException('User Role not found')
+
+            return rolesArray; //if there is something
+
         }
 
         //if no role was passed, we return all users
@@ -50,16 +58,18 @@ export class UsersService {
 
     findOne(id: number) {
         const user = this.users.find(user => user.id === id);
+
+        if (!user) throw new NotFoundException('User not found');
         return user;
     }
 
-    create(user: { name: string, email: string, role: 'INTERN' | 'ENGINEER' | 'ADMIN' }) {  //the id will need to be created aswell since we aren't connected to the DB
+    create(createUserDto: CreateUserDto) {  //the id will need to be created aswell since we aren't connected to the DB
 
         const usersByHighestId = [...this.users].sort((a, b) => b.id - a.id);     //this will sort users by highest it
 
         const newUser = {
             id: usersByHighestId[0].id + 1,     //we generate the next highest id
-            ...user //we spread in the rest of the user that we receive in
+            ...createUserDto //we spread in the rest of the user that we receive in
         }
 
         this.users.push(newUser);
@@ -67,12 +77,12 @@ export class UsersService {
 
     }
 
-    update(id: number, updatedUser: { name?: string, email?: string, role?: 'INTERN' | 'ENGINEER' | 'ADMIN' }) {
+    update(id: number, updateUserDto: UpdateUserDto) {
 
         this.users = this.users.map(user => {
 
             if (user.id === id) {
-                return { ...user, ...updatedUser }   //spread in all the properties of the existing user and then the updated user will override just any property was passed in
+                return { ...user, ...updateUserDto }   //spread in all the properties of the existing user and then the updated user will override just any property was passed in
             }
             return user;
 
